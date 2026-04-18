@@ -4,6 +4,14 @@
   "description": "Enhance simple vibe coding prompts into well-structured prompts for Claude Code / Codex",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HCGStudio/prompt-enhancer.git"
+  },
+  "homepage": "https://github.com/HCGStudio/prompt-enhancer#readme",
+  "bugs": {
+    "url": "https://github.com/HCGStudio/prompt-enhancer/issues"
+  },
   "bin": {
     "prompt-enhancer": "./dist/index.js"
   },
