@@ -4,6 +4,7 @@ import chalk from "chalk";
 import { input, password, select } from "@inquirer/prompts";
 import OpenAI from "openai";
 import { enhance } from "./enhancer.js";
+import { maybeDispatch } from "./dispatch.js";
 import { loadConfig, saveConfig, getConfigPath, type Config } from "./config.js";
 
 const program = new Command();
@@ -77,8 +78,9 @@ program
       chalk.whiteBright(`\nUsing model: ${resolved.model}  •  max_tokens: ${opts.maxTokens}\n`)
     );
 
+    let enhanced: string;
     try {
-      await enhance({
+      enhanced = await enhance({
         baseURL: resolved.baseURL!,
         apiKey: resolved.apiKey!,
         model: resolved.model!,
@@ -89,6 +91,15 @@ program
       const msg = err instanceof Error ? err.message : String(err);
       console.error(chalk.redBright("Error: " + msg));
       process.exit(1);
+    }
+
+    if (enhanced.trim()) {
+      try {
+        await maybeDispatch(enhanced);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(chalk.redBright("Dispatch error: " + msg));
+      }
     }
   });
 

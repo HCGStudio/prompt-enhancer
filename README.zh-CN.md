@@ -6,6 +6,8 @@
 
 它还会自动读取当前目录下的 `CLAUDE.md`、`AGENTS.md`、`.cursorrules` 等约定文件,把项目惯例直接融入到输出 Prompt 中,无需你手动重复说明。
 
+生成增强 Prompt 之后,CLI 会询问是否把它直接交给 **Claude Code**(`claude`)或 **Codex**(`codex`)继续执行 —— 也可以选择跳过,只打印结果。
+
 > English version: [README.md](./README.md)
 
 ---
@@ -160,6 +162,7 @@ $ npx @hcgstudio/prompt-enhancer "做一个 todo app"
    - `read_ai_instructions` — 读取当前目录下的 `CLAUDE.md` / `AGENTS.md` / `.cursorrules` 等,获取项目惯例。
    - `ask_question` — 在你的终端弹出交互选择框,问最关键的问题(最多 1–4 个)。
 3. 澄清完成后,模型把最终增强 Prompt 以 Markdown 形式流式输出到 stdout。
+4. 输出完成后,CLI 会让你选择把 Prompt 直接交给 `claude` 或 `codex`,或者跳过。被选中的 CLI 会在当前终端继承 stdio 启动。
 
 整个流程在你的终端里完成,数据只发往你自己配置的 LLM 接口。
 

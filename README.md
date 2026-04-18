@@ -8,6 +8,8 @@
 
 It also auto-detects project conventions from `CLAUDE.md`, `AGENTS.md`, `.cursorrules`, etc. in your current directory and folds them into the enhanced prompt — so it picks up your stack and house style without asking.
 
+After the enhanced prompt is generated, the CLI offers to hand it straight off to **Claude Code** (`claude`) or **Codex** (`codex`) — or skip and just print it.
+
 ---
 
 ## Install / Run
@@ -163,6 +165,7 @@ You then paste that into Claude Code / Codex / Cursor and let it build.
    - `read_ai_instructions` — reads `CLAUDE.md` / `AGENTS.md` / `.cursorrules` / etc. from the current working directory so project conventions are folded into the output.
    - `ask_question` — opens an interactive picker in your terminal for the most load-bearing clarifications. The model is instructed to ask at most 1–4 questions.
 3. After clarifications, the model streams the final enhanced prompt to stdout in Markdown.
+4. You're prompted to dispatch the result: launch `claude` with the prompt, launch `codex` with the prompt, or skip. The chosen CLI runs in the same terminal with stdio inherited.
 
 The whole loop runs in your terminal — no data goes anywhere except your configured LLM endpoint.
 
