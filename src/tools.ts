@@ -2,6 +2,7 @@ import { select, checkbox, input } from "@inquirer/prompts";
 import chalk from "chalk";
 import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
+import { createHash } from "node:crypto";
 import type { Tool } from "openai/resources/responses/responses";
 
 export const askQuestionTool: Tool = {
@@ -154,6 +155,9 @@ export async function runReadAiInstructions(args: ReadAiInstructionsArgs): Promi
 
   const sections: string[] = [];
   const found: string[] = [];
+  const skipped: string[] = [];
+  const seenInodes = new Map<string, string>(); // dev:ino -> rel path that claimed it
+  const seenContent = new Map<string, string>(); // sha256 -> rel path that claimed it
 
   for (const rel of candidates) {
     const abs = resolve(cwd, rel);
@@ -167,16 +171,35 @@ export async function runReadAiInstructions(args: ReadAiInstructionsArgs): Promi
     }
     if (!st.isFile()) continue;
 
-    let body: string;
+    const inodeKey = `${st.dev}:${st.ino}`;
+    const inodeOwner = seenInodes.get(inodeKey);
+    if (inodeOwner) {
+      skipped.push(`${rel} (same file as ${inodeOwner})`);
+      continue;
+    }
+
+    let buf: Buffer;
     try {
-      const buf = await readFile(abs);
-      const truncated = buf.length > MAX_FILE_BYTES;
-      body = buf.subarray(0, MAX_FILE_BYTES).toString("utf8");
-      if (truncated) body += `\n\n[... truncated, file is ${buf.length} bytes ...]`;
+      buf = await readFile(abs);
     } catch (err) {
       sections.push(`### ${rel}\n[ERROR reading file: ${(err as Error).message}]`);
       continue;
     }
+
+    const contentHash = createHash("sha256").update(buf).digest("hex");
+    const contentOwner = seenContent.get(contentHash);
+    if (contentOwner) {
+      skipped.push(`${rel} (identical content to ${contentOwner})`);
+      continue;
+    }
+
+    seenInodes.set(inodeKey, rel);
+    seenContent.set(contentHash, rel);
+
+    const truncated = buf.length > MAX_FILE_BYTES;
+    let body = buf.subarray(0, MAX_FILE_BYTES).toString("utf8");
+    if (truncated) body += `\n\n[... truncated, file is ${buf.length} bytes ...]`;
+
     found.push(rel);
     sections.push(`### ${rel}\n${body}`);
   }
@@ -186,6 +209,13 @@ export async function runReadAiInstructions(args: ReadAiInstructionsArgs): Promi
     console.log(chalk.whiteBright(`📄 No AI instruction files found in ${cwd}`));
     return `No AI instruction files found in ${cwd}. Checked: ${[...candidates].join(", ")}`;
   }
-  console.log(chalk.whiteBright(`📄 Read AI instructions: ${found.join(", ")}`));
-  return `Found ${found.length} file(s) in ${cwd}:\n\n${sections.join("\n\n")}`;
+  const summary = skipped.length > 0
+    ? `${found.join(", ")} (skipped duplicates: ${skipped.join(", ")})`
+    : found.join(", ");
+  console.log(chalk.whiteBright(`📄 Read AI instructions: ${summary}`));
+  let output = `Found ${found.length} file(s) in ${cwd}:\n\n${sections.join("\n\n")}`;
+  if (skipped.length > 0) {
+    output += `\n\nSkipped ${skipped.length} duplicate file(s): ${skipped.join(", ")}`;
+  }
+  return output;
 }
