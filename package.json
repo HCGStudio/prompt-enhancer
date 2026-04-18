@@ -1,6 +1,6 @@
 {
   "name": "@hcgstudio/prompt-enhancer",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Enhance simple vibe coding prompts into well-structured prompts for Claude Code / Codex",
   "type": "module",
   "license": "MIT",
