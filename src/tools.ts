@@ -2,47 +2,46 @@ import { select, checkbox, input } from "@inquirer/prompts";
 import chalk from "chalk";
 import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { ChatCompletionTool } from "openai/resources/chat/completions";
+import type { Tool } from "openai/resources/responses/responses";
 
-export const askQuestionTool: ChatCompletionTool = {
+export const askQuestionTool: Tool = {
   type: "function",
-  function: {
-    name: "ask_question",
-    description:
-      "Ask the user a clarifying question to better understand their requirements before producing the final enhanced prompt. Use this aggressively when the user's request is ambiguous (e.g. unclear tech stack, scope, target platform, styling preferences, data shape, deployment target). Prefer this over guessing. Each call surfaces an interactive selection UI in the user's terminal.",
-    parameters: {
-      type: "object",
-      properties: {
-        question: {
-          type: "string",
-          description: "A clear, specific question (ends with '?').",
-        },
-        header: {
-          type: "string",
-          description: "Short label / category (max ~12 chars), e.g. 'Framework', 'Scope'.",
-        },
-        options: {
-          type: "array",
-          minItems: 2,
-          maxItems: 6,
-          description:
-            "2-6 distinct, mutually exclusive choices. The user can also pick 'Other' to type a custom answer.",
-          items: {
-            type: "object",
-            properties: {
-              label: { type: "string", description: "Short choice label (1-5 words)." },
-              description: { type: "string", description: "One-line explanation of the choice." },
-            },
-            required: ["label"],
+  name: "ask_question",
+  description:
+    "Ask the user a clarifying question to better understand their requirements before producing the final enhanced prompt. Use this aggressively when the user's request is ambiguous (e.g. unclear tech stack, scope, target platform, styling preferences, data shape, deployment target). Prefer this over guessing. Each call surfaces an interactive selection UI in the user's terminal.",
+  strict: false,
+  parameters: {
+    type: "object",
+    properties: {
+      question: {
+        type: "string",
+        description: "A clear, specific question (ends with '?').",
+      },
+      header: {
+        type: "string",
+        description: "Short label / category (max ~12 chars), e.g. 'Framework', 'Scope'.",
+      },
+      options: {
+        type: "array",
+        minItems: 2,
+        maxItems: 6,
+        description:
+          "2-6 distinct, mutually exclusive choices. The user can also pick 'Other' to type a custom answer.",
+        items: {
+          type: "object",
+          properties: {
+            label: { type: "string", description: "Short choice label (1-5 words)." },
+            description: { type: "string", description: "One-line explanation of the choice." },
           },
-        },
-        multi_select: {
-          type: "boolean",
-          description: "Allow multiple selections. Default false.",
+          required: ["label"],
         },
       },
-      required: ["question", "header", "options"],
+      multi_select: {
+        type: "boolean",
+        description: "Allow multiple selections. Default false.",
+      },
     },
+    required: ["question", "header", "options"],
   },
 };
 
@@ -123,21 +122,20 @@ const AI_INSTRUCTION_FILES = [
 
 const MAX_FILE_BYTES = 64 * 1024;
 
-export const readAiInstructionsTool: ChatCompletionTool = {
+export const readAiInstructionsTool: Tool = {
   type: "function",
-  function: {
-    name: "read_ai_instructions",
-    description:
-      "Read AI assistant instruction files from the user's current working directory (e.g. CLAUDE.md, AGENTS.md, .cursorrules, .github/copilot-instructions.md). Use this BEFORE asking clarifying questions to discover existing project conventions, tech stack, style rules, and constraints — these should be reflected in the enhanced prompt and may answer questions you'd otherwise need to ask. Returns the contents of any found files; returns a 'no files found' message if none exist.",
-    parameters: {
-      type: "object",
-      properties: {
-        extra_paths: {
-          type: "array",
-          items: { type: "string" },
-          description:
-            "Optional additional relative file paths to read (e.g. 'docs/STYLE.md'). Resolved against the current working directory. Path traversal outside cwd is rejected.",
-        },
+  name: "read_ai_instructions",
+  description:
+    "Read AI assistant instruction files from the user's current working directory (e.g. CLAUDE.md, AGENTS.md, .cursorrules, .github/copilot-instructions.md). Use this BEFORE asking clarifying questions to discover existing project conventions, tech stack, style rules, and constraints — these should be reflected in the enhanced prompt and may answer questions you'd otherwise need to ask. Returns the contents of any found files; returns a 'no files found' message if none exist.",
+  strict: false,
+  parameters: {
+    type: "object",
+    properties: {
+      extra_paths: {
+        type: "array",
+        items: { type: "string" },
+        description:
+          "Optional additional relative file paths to read (e.g. 'docs/STYLE.md'). Resolved against the current working directory. Path traversal outside cwd is rejected.",
       },
     },
   },

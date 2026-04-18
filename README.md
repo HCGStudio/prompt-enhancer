@@ -15,8 +15,17 @@ It also auto-detects project conventions from `CLAUDE.md`, `AGENTS.md`, `.cursor
 The fastest path is `npx` — no install required:
 
 ```bash
+npx @hcgstudio/prompt-enhancer "make me a todo app"
+```
+
+On the first run, the CLI will prompt you for the API base URL, auth token, and model (fetched live from the endpoint's `/v1/models`) and save them to `~/.config/prompt-enhancer/config.json` (mode `0600`). Subsequent runs reuse the saved config.
+
+You can also pre-set them via environment variables:
+
+```bash
 export PROMPT_ENHANCER_BASE_URL="https://api.openai.com/v1"
 export PROMPT_ENHANCER_AUTH_TOKEN="sk-..."
+export PROMPT_ENHANCER_MODEL="gpt-5"
 
 npx @hcgstudio/prompt-enhancer "make me a todo app"
 ```
@@ -30,11 +39,15 @@ prompt-enhancer "build a CLI that scrapes GitHub stars"
 
 ### Configuration
 
-| Env var | Required | Description |
+The CLI reads each setting in this order: **CLI flag → env var → `~/.config/prompt-enhancer/config.json` → interactive prompt** (and saves anything you typed back to the config file).
+
+| Setting | Env var | Description |
 |---|---|---|
-| `PROMPT_ENHANCER_BASE_URL` | yes | OpenAI-compatible endpoint (OpenAI, Azure, OpenRouter, vLLM, Ollama, etc.) |
-| `PROMPT_ENHANCER_AUTH_TOKEN` | yes | API key for that endpoint |
-| `PROMPT_ENHANCER_MODEL` | no | Default model (overridden by `-m`). Defaults to `gpt-4o` |
+| Base URL | `PROMPT_ENHANCER_BASE_URL` | OpenAI-compatible endpoint (OpenAI, Azure, OpenRouter, vLLM, Ollama, etc.). The CLI prefers the new `/v1/responses` API and automatically falls back to `/v1/chat/completions` if the endpoint doesn't support it. |
+| Auth token | `PROMPT_ENHANCER_AUTH_TOKEN` | API key for that endpoint |
+| Model | `PROMPT_ENHANCER_MODEL` | Model id. If unset, the CLI calls `/v1/models` and shows a picker. |
+
+Config file location respects `$XDG_CONFIG_HOME` (defaults to `~/.config/prompt-enhancer/config.json`).
 
 ### Flags
 
@@ -145,7 +158,7 @@ You then paste that into Claude Code / Codex / Cursor and let it build.
 
 ## How it works
 
-1. The CLI sends your rough prompt to the configured chat-completions endpoint with a system prompt that tells the model to act as a prompt enhancer.
+1. The CLI sends your rough prompt to the configured endpoint (Responses API, with automatic fallback to Chat Completions) using a system prompt that tells the model to act as a prompt enhancer.
 2. The model is given two tools:
    - `read_ai_instructions` — reads `CLAUDE.md` / `AGENTS.md` / `.cursorrules` / etc. from the current working directory so project conventions are folded into the output.
    - `ask_question` — opens an interactive picker in your terminal for the most load-bearing clarifications. The model is instructed to ask at most 1–4 questions.

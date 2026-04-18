@@ -15,8 +15,17 @@
 最快的方式是用 `npx`,无需安装:
 
 ```bash
+npx @hcgstudio/prompt-enhancer "做一个 todo app"
+```
+
+首次运行时,CLI 会交互式询问 API 地址、Auth Token 和模型(模型列表通过调用接口的 `/v1/models` 实时获取),并把结果保存到 `~/.config/prompt-enhancer/config.json`(权限 `0600`)。之后运行会自动复用配置。
+
+也可以通过环境变量预先设置:
+
+```bash
 export PROMPT_ENHANCER_BASE_URL="https://api.openai.com/v1"
 export PROMPT_ENHANCER_AUTH_TOKEN="sk-..."
+export PROMPT_ENHANCER_MODEL="gpt-5"
 
 npx @hcgstudio/prompt-enhancer "做一个 todo app"
 ```
@@ -28,13 +37,17 @@ npm install -g @hcgstudio/prompt-enhancer
 prompt-enhancer "写个抓 GitHub star 数的 CLI"
 ```
 
-### 环境变量
+### 配置
 
-| 变量 | 必填 | 说明 |
+CLI 按以下优先级读取配置:**命令行参数 → 环境变量 → `~/.config/prompt-enhancer/config.json` → 交互式询问**(询问到的值会写回配置文件)。
+
+| 配置项 | 环境变量 | 说明 |
 |---|---|---|
-| `PROMPT_ENHANCER_BASE_URL` | 是 | 兼容 OpenAI 协议的接口地址(OpenAI、Azure、OpenRouter、vLLM、Ollama 等都可以) |
-| `PROMPT_ENHANCER_AUTH_TOKEN` | 是 | 对应接口的 API Key |
-| `PROMPT_ENHANCER_MODEL` | 否 | 默认模型(可被 `-m` 覆盖),默认 `gpt-4o` |
+| Base URL | `PROMPT_ENHANCER_BASE_URL` | 兼容 OpenAI 协议的接口地址(OpenAI、Azure、OpenRouter、vLLM、Ollama 等)。CLI 优先使用新的 `/v1/responses` 接口,若接口不支持会自动 fallback 到 `/v1/chat/completions`。 |
+| Auth Token | `PROMPT_ENHANCER_AUTH_TOKEN` | 对应接口的 API Key |
+| 模型 | `PROMPT_ENHANCER_MODEL` | 模型 id。未配置时 CLI 会调用 `/v1/models` 弹出选择框。 |
+
+配置文件位置遵循 `$XDG_CONFIG_HOME`(默认 `~/.config/prompt-enhancer/config.json`)。
 
 ### 命令行参数
 
@@ -142,7 +155,7 @@ $ npx @hcgstudio/prompt-enhancer "做一个 todo app"
 
 ## 工作原理
 
-1. CLI 把你的原始 Prompt 发给配置好的 chat completions 接口,系统提示词告诉模型扮演 Prompt 增强器。
+1. CLI 把你的原始 Prompt 发给配置好的接口(优先 Responses API,失败时自动 fallback 到 Chat Completions),系统提示词告诉模型扮演 Prompt 增强器。
 2. 模型可以调用两个工具:
    - `read_ai_instructions` — 读取当前目录下的 `CLAUDE.md` / `AGENTS.md` / `.cursorrules` 等,获取项目惯例。
    - `ask_question` — 在你的终端弹出交互选择框,问最关键的问题(最多 1–4 个)。
