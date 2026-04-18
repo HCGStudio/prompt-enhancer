@@ -15,6 +15,8 @@ program
   .argument("[prompt...]", "Your rough prompt. If omitted, you'll be prompted interactively.")
   .option("-m, --model <model>", "Model name (overrides env / config)")
   .option("--max-tokens <n>", "Max tokens for response", (v) => parseInt(v, 10), 16000)
+  .option("--min-questions <n>", "Minimum clarifying questions to ask", (v) => parseInt(v, 10), 1)
+  .option("--max-questions <n>", "Maximum clarifying questions to ask", (v) => parseInt(v, 10), 10)
   .option(
     "--launch <target>",
     "After enhancing, launch the prompt directly with 'claude' or 'codex' (skips the picker)",
@@ -26,7 +28,15 @@ program
       return norm as LaunchTarget;
     }
   )
-  .action(async (promptArgs: string[], opts: { model?: string; maxTokens: number; launch?: LaunchTarget }) => {
+  .action(async (promptArgs: string[], opts: { model?: string; maxTokens: number; minQuestions: number; maxQuestions: number; launch?: LaunchTarget }) => {
+    if (!Number.isFinite(opts.minQuestions) || opts.minQuestions < 0) {
+      console.error(chalk.redBright("--min-questions must be a non-negative integer"));
+      process.exit(1);
+    }
+    if (!Number.isFinite(opts.maxQuestions) || opts.maxQuestions < opts.minQuestions) {
+      console.error(chalk.redBright("--max-questions must be an integer >= --min-questions"));
+      process.exit(1);
+    }
     const fileCfg = await loadConfig();
     const resolved: Config = {
       baseURL: process.env.PROMPT_ENHANCER_BASE_URL || fileCfg.baseURL,
@@ -89,14 +99,16 @@ program
       chalk.whiteBright(`\nUsing model: ${resolved.model}  •  max_tokens: ${opts.maxTokens}\n`)
     );
 
-    let enhanced: string;
+    let result;
     try {
-      enhanced = await enhance({
+      result = await enhance({
         baseURL: resolved.baseURL!,
         apiKey: resolved.apiKey!,
         model: resolved.model!,
         maxTokens: opts.maxTokens,
         userPrompt,
+        minQuestions: opts.minQuestions,
+        maxQuestions: opts.maxQuestions,
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -104,9 +116,15 @@ program
       process.exit(1);
     }
 
-    if (enhanced.trim()) {
+    if (result.text.trim()) {
       try {
-        await maybeDispatch(enhanced, opts.launch);
+        await maybeDispatch(result.text, {
+          preset: opts.launch,
+          refine: async (feedback) => {
+            result = await result!.refine(feedback);
+            return result.text;
+          },
+        });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(chalk.redBright("Dispatch error: " + msg));
