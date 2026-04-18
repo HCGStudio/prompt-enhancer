@@ -55,6 +55,7 @@ Config file location respects `$XDG_CONFIG_HOME` (defaults to `~/.config/prompt-
 
 - `-m, --model <name>` — override the model for this call
 - `--max-tokens <n>` — response cap (default `16000`)
+- `--launch <claude|codex>` — after enhancing, launch the chosen CLI with the prompt directly, skipping the picker
 
 ### Modes
 

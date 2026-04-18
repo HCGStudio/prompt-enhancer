@@ -4,7 +4,7 @@ import chalk from "chalk";
 import { input, password, select } from "@inquirer/prompts";
 import OpenAI from "openai";
 import { enhance } from "./enhancer.js";
-import { maybeDispatch } from "./dispatch.js";
+import { maybeDispatch, type LaunchTarget } from "./dispatch.js";
 import { loadConfig, saveConfig, getConfigPath, type Config } from "./config.js";
 
 const program = new Command();
@@ -15,7 +15,18 @@ program
   .argument("[prompt...]", "Your rough prompt. If omitted, you'll be prompted interactively.")
   .option("-m, --model <model>", "Model name (overrides env / config)")
   .option("--max-tokens <n>", "Max tokens for response", (v) => parseInt(v, 10), 16000)
-  .action(async (promptArgs: string[], opts: { model?: string; maxTokens: number }) => {
+  .option(
+    "--launch <target>",
+    "After enhancing, launch the prompt directly with 'claude' or 'codex' (skips the picker)",
+    (v) => {
+      const norm = v.toLowerCase();
+      if (norm !== "claude" && norm !== "codex") {
+        throw new Error("--launch must be 'claude' or 'codex'");
+      }
+      return norm as LaunchTarget;
+    }
+  )
+  .action(async (promptArgs: string[], opts: { model?: string; maxTokens: number; launch?: LaunchTarget }) => {
     const fileCfg = await loadConfig();
     const resolved: Config = {
       baseURL: process.env.PROMPT_ENHANCER_BASE_URL || fileCfg.baseURL,
@@ -95,7 +106,7 @@ program
 
     if (enhanced.trim()) {
       try {
-        await maybeDispatch(enhanced);
+        await maybeDispatch(enhanced, opts.launch);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(chalk.redBright("Dispatch error: " + msg));

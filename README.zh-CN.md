@@ -55,6 +55,7 @@ CLI 按以下优先级读取配置:**命令行参数 → 环境变量 → `~/.co
 
 - `-m, --model <name>` — 本次调用使用的模型
 - `--max-tokens <n>` — 单次响应的最大 token 数(默认 `16000`)
+- `--launch <claude|codex>` — 生成完直接用 `claude` 或 `codex` 启动,不再弹出选择框
 
 ### 使用模式
 
